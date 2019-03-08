@@ -16,13 +16,13 @@ startI=${1}
 endI=${2}
 
 targetLoc="/home/yingji/BoxTest"
-baseLoc="/home/yingji/testBox"
+workingDir="/home/yingji/testBox"
 
-outputLoc="$baseLoc/boxRes"
-ctlogDir="$baseLoc/CTLogs"
-dxlogDir="$baseLoc/DXLogs"
+outputLoc="$workingDir/boxRes"
+ctlogDir="$workingDir/CTLogs"
+dxlogDir="$workingDir/DXLogs"
 
-repoDir="$baseLoc/xray_itk"
+repoDir="$workingDir/xray_itk"
 
 if [[ ! -d $outputLoc ]]; then
 	mkdir $outputLoc
@@ -55,7 +55,7 @@ for i in $(seq $startI $endI ); do
 			if [[ -f "$j" ]]; then
 				targetDir=$(dirname "$j")
 
-				valueLog="$baseLoc/log_${namepart}_${count}.txt"				
+				valueLog="$workingDir/log_${namepart}_${count}.txt"				
 
 				python ${repoDir}/getDicomInfo.py --inFile $j >> $valueLog
 				ct_val=`awk 'NR==2' $valueLog`
@@ -64,7 +64,7 @@ for i in $(seq $startI $endI ); do
 
 				if [[ "$ct_val" == "CT" ]]; then
 					python3 ${repoDir}/preproc_nifti.py --inDir "${targetDir}" --out "${outputLoc}" --logFile "$valueLog" 
-					mv "$valueLog" "$baseLoc/CTLogs/"
+					mv "$valueLog" "$workingDir/CTLogs/"
 				else
 					mv $valueLog ${valueLog/log/DX_log}
 				fi
@@ -76,6 +76,6 @@ for i in $(seq $startI $endI ); do
 
 done
 
-cd $baseLoc
+cd $workingDir
 mv DX_log* $dxlogDir
 
