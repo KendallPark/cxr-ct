@@ -12,8 +12,8 @@ declare -i startI
 declare -i endI
 startI=${1}
 endI=${2}
-/home/yingji/testBox
-
+workingDir=/home/yingji/testBox
+cd $workingDir
 for i in $(seq $startI $endI ); do
 	namepart=`printf "%.4d" $i`
 	fileLoc=boxRes/${namepart}.nii.gz
