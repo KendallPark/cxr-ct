@@ -8,7 +8,11 @@ from distutils.command.build import build as _build
 import setuptools
 
 CUSTOM_COMMANDS = [
-    ['pip', 'install', '-e', 'git+https://github.com/KendallPark/pydicom.git@c3cef2c0a864a0c13f2a77d8e0fee04c22682b40#egg=pydicom']]
+    ['apt-get', 'update'],
+    ['apt-get', '--assume-yes', 'install', 'git'],
+    ['pip', 'install', 'git+https://github.com/KendallPark/pydicom.git@c3cef2c0a864a0c13f2a77d8e0fee04c22682b40#egg=pydicom'],
+    ['pip', 'install', 'dicom2nifti'],  # the order of this and the above module is important!!!
+    ]
 
 # This class handles the pip install mechanism.
 class build(_build):  # pylint: disable=invalid-name
@@ -74,7 +78,7 @@ class CustomCommands(setuptools.Command):
     for command in CUSTOM_COMMANDS:
       self.RunCustomCommand(command)
 
-REQUIRED_PACKAGES = ['pydicom', 'tensorflow', 'numpy', 'dicom2nifti', 'nibabel']
+REQUIRED_PACKAGES = ['apache-beam[gcp]', 'tensorflow', 'numpy', 'nibabel']
 PACKAGE_NAME = 'process_dicoms'
 PACKAGE_VERSION = '0.0.1'
 setuptools.setup(

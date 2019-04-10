@@ -2,7 +2,9 @@ from __future__ import print_function
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import GoogleCloudOptions
+from apache_beam.options.pipeline_options import SetupOptions
 from apache_beam.io.filebasedsource import FileBasedSource
+from apache_beam.utils import retry
 # from google.oauth2 import service_account
 import pydicom
 import os
@@ -39,6 +41,11 @@ class CsvFileSource(FileBasedSource):
 
     for rec in reader:
         yield rec[0], rec[1]
+
+class Split(beam.DoFn):
+    def process(self, element):
+        key, url = element.split(',')
+        yield key, url
 
 class DicomToNifty(beam.DoFn):
     def __init__(self, gcs_bucket):
@@ -88,13 +95,18 @@ class SaveNumpy(beam.DoFn):
     def __init__(self, gcs_save_dir):
         self._gcs_save_dir = gcs_save_dir;
 
-    def process(self, element):
-        key, series_id, qoffset, arr = element
+    @retry.with_exponential_backoff(num_retries=5)
+    def save_array(path, arr):
         fs = beam.io.gcsio.GcsIO()
-        path = os.path.join(self._gcs_save_dir, key+'.npy')
         file = fs.open(path, 'wb')
         np.save(file, arr)
         file.close()
+
+    def process(self, element):
+        key, series_id, qoffset, arr = element
+        # fs = beam.io.gcsio.GcsIO()
+        path = os.path.join(self._gcs_save_dir, key+'.npy')
+        self.save_array(path, arr)
         yield key, series_id, qoffset, arr
 
 class GenerateTFExamplesFromNumpyEmbeddingsDoFn(beam.DoFn):
@@ -146,19 +158,16 @@ class GenerateTFExamplesFromNumpyEmbeddingsDoFn(beam.DoFn):
 options = PipelineOptions(flags=sys.argv)
 google_cloud_options = options.view_as(GoogleCloudOptions)
 google_cloud_options.project = 'x-ray-reconstruction'
-google_cloud_options.job_name = 'numpy-fun-fun'
+google_cloud_options.job_name = 'numpy-fun-10'
 google_cloud_options.staging_location = 'gs://cxr-to-chest-ct2/binaries'
 google_cloud_options.temp_location = 'gs://cxr-to-chest-ct2/temp'
-# options.view_as(StandardOptions).runner = 'DataflowRunner'
+options.view_as(SetupOptions).save_main_session = True
 
 with beam.Pipeline(options=options) as p:
-    # gcs = beam.io.gcp.gcsio.GcsIO()
-
-    # gcs_path = 'gs://cxr-to-chest-ct/datasets/LIDC-IDRI Dataset/LIDC-IDRI/LIDC-IDRI-0001/01-01-2000-30178/3000566-03192/'
-
     # embed()
+    # dicom_urls = p | 'read csv data' >> beam.io.Read(CsvFileSource('gs://cxr-to-chest-ct/datasets/LIDC-IDRI Dataset/ct_scan_urls.csv'))
 
-    dicom_urls = p | 'read csv data' >> beam.io.Read(CsvFileSource('./deps/ct_scan_urls.csv'))
+    dicom_urls = p | 'read csv file' >> beam.io.textio.ReadFromText('gs://cxr-to-chest-ct/datasets/LIDC-IDRI Dataset/ct_scan_urls.csv') | 'split stuff' >> beam.ParDo(Split())
 
     nii_arrays = dicom_urls | 'dicom to nifty' >> beam.ParDo(DicomToNifty('gs://cxr-to-chest-ct/'))
 

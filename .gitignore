@@ -1,3 +1,4 @@
 /model/skulls_mmdnn/__pycache__
 
 *.nii
+*.egg-info
