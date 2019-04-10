@@ -4,10 +4,10 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
+ipython = "*"
 
 [packages]
 apache-beam = {extras = ["gcp"],version = "*"}
-ipython = "*"
 dicom2nifti = "*"
 pydicom = {editable = true,git = "https://github.com/KendallPark/pydicom.git"}
 tensorflow = "*"

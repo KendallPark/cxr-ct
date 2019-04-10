@@ -1,6 +1,7 @@
 from __future__ import print_function
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
+from apache_beam.options.pipeline_options import GoogleCloudOptions
 from apache_beam.io.filebasedsource import FileBasedSource
 # from google.oauth2 import service_account
 import pydicom
@@ -9,6 +10,7 @@ import csv
 # import io
 import tensorflow as tf
 import numpy as np
+import sys
 
 import dicom2nifti.patch_pydicom_encodings
 dicom2nifti.patch_pydicom_encodings.apply()
@@ -16,7 +18,7 @@ dicom2nifti.patch_pydicom_encodings.apply()
 from dicom2nifti.convert_dicom import dicom_array_to_nifti
 from nibabel import processing
 
-from IPython import embed
+# from IPython import embed
 
 # GCS_BUCKET = 'gs://cxr-to-chest-ct/'
 
@@ -122,32 +124,41 @@ class GenerateTFExamplesFromNumpyEmbeddingsDoFn(beam.DoFn):
 
         yield example
 
-class DataflowOptions(PipelineOptions):
+# class DataflowOptions(PipelineOptions):
+#
+#   @classmethod
+#   def _add_argparse_args(cls, parser):
+#     parser.add_argument('--bucket',
+#                         help='Input for the pipeline',
+#                         default='gs://cxr-to-chest-ct/')
+#     parser.add_argument('--output',
+#                         help='Output for the pipeline',
+#                         default='gs://cxr-to-chest-ct2/resampled/')
+#     parser.add_argument('--project',
+#                         dest='project',
+#                         help='Project',
+#                         default='x-ray-reconstruction')
+#     parser.add_argument('--temp_location',
+#                         dest='temp_location',
+#                         help='temp_location',
+#                         default='gs://cxr-to-chest-ct2/tmp/')
 
-  @classmethod
-  def _add_argparse_args(cls, parser):
-    parser.add_argument('--bucket',
-                        help='Input for the pipeline',
-                        default='gs://cxr-to-chest-ct/')
-    parser.add_argument('--output',
-                        help='Output for the pipeline',
-                        default='gs://cxr-to-chest-ct2/resampled/')
-    parser.add_argument('--project',
-                        help='Project',
-                        default='x-ray-reconstruction')
-    parser.add_argument('--temp_location',
-                        help='temp_location',
-                        default='gs://cxr-to-chest-ct2/tmp/')
+options = PipelineOptions(flags=sys.argv)
+google_cloud_options = options.view_as(GoogleCloudOptions)
+google_cloud_options.project = 'x-ray-reconstruction'
+google_cloud_options.job_name = 'numpy-fun-fun'
+google_cloud_options.staging_location = 'gs://cxr-to-chest-ct2/binaries'
+google_cloud_options.temp_location = 'gs://cxr-to-chest-ct2/temp'
+# options.view_as(StandardOptions).runner = 'DataflowRunner'
 
-
-with beam.Pipeline(options=DataflowOptions(flags=sys.argv)) as p:
+with beam.Pipeline(options=options) as p:
     # gcs = beam.io.gcp.gcsio.GcsIO()
 
     # gcs_path = 'gs://cxr-to-chest-ct/datasets/LIDC-IDRI Dataset/LIDC-IDRI/LIDC-IDRI-0001/01-01-2000-30178/3000566-03192/'
 
     # embed()
 
-    dicom_urls = p | 'read csv data' >> beam.io.Read(CsvFileSource('./ct_scan_urls.csv'))
+    dicom_urls = p | 'read csv data' >> beam.io.Read(CsvFileSource('./deps/ct_scan_urls.csv'))
 
     nii_arrays = dicom_urls | 'dicom to nifty' >> beam.ParDo(DicomToNifty('gs://cxr-to-chest-ct/'))
 
