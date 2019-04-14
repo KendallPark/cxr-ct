@@ -1,0 +1,19 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+ipython = "*"
+gcloud = "*"
+
+[packages]
+apache-beam = {extras = ["gcp"],version = "*"}
+tensorflow = "*"
+scipy = "*"
+
+[requires]
+python_version = "2.7.14"
+
+[pipenv]
+allow_prereleases = true
