@@ -5,6 +5,7 @@ from apache_beam.options.pipeline_options import GoogleCloudOptions
 from apache_beam.options.pipeline_options import SetupOptions
 from apache_beam.io.filebasedsource import FileBasedSource
 from apache_beam.utils import retry
+from scipy.ndimage import zoom
 # from google.oauth2 import service_account
 import pydicom
 import os
@@ -71,7 +72,8 @@ class DoEverything(beam.DoFn):
         resampled = processing.resample_to_output(result)
         del result
         qoffset = list(resampled.header.get_sform()[:3, -1])
-        npy_arr = np.ascontiguousarray(np.flipud(np.rot90(resampled.get_fdata(dtype=np.float32).astype(np.int16))))
+        npy_arr = np.ascontiguousarray(np.rot90(np.swapaxes(resampled.get_fdata(dtype=np.float32).astype(np.int16),0,2), k=2, axes=(0,2) ) )
+
         del resampled
         gc.collect()
         path = os.path.join(self._gcs_save_dir, key+'.npy')
@@ -213,7 +215,7 @@ with beam.Pipeline(options=options) as p:
 
     dicom_urls = p | 'read csv file' >> beam.io.textio.ReadFromText('gs://cxr-to-chest-ct/datasets/LIDC-IDRI Dataset/ct_scan_urls.csv') | 'split stuff' >> beam.ParDo(Split())
 
-    saved_arrays = dicom_urls | 'draw the rest of the owl' >> beam.ParDo(DoEverything('gs://cxr-to-chest-ct/', 'gs://cxr-to-chest-ct2/resampled/numpy-int-rotated/'))
+    saved_arrays = dicom_urls | 'draw the rest of the owl' >> beam.ParDo(DoEverything('gs://cxr-to-chest-ct/', 'gs://cxr-to-chest-ct2/resampled/numpy-int-rotated-correctly/'))
 
     # nii_arrays = dicom_urls | 'dicom to nifty' >> beam.ParDo(DicomToNifty('gs://cxr-to-chest-ct/'))
     # resampled_nii = nii_arrays | 'resample arrays' >> beam.ParDo(ResampleNifty())
