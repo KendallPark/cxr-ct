@@ -13,6 +13,9 @@ apache-beam = {extras = ["gcp"],version = "*"}
 tensorflow = "*"
 scipy = "*"
 sklearn = "*"
+tensorflow-transform = "*"
+itk = "*"
+itk-twoprojectionregistration = "*"
 
 [requires]
 python_version = "2.7.14"

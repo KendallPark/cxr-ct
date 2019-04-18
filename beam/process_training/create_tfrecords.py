@@ -11,108 +11,116 @@ import tensorflow as tf
 import numpy as np
 import sys
 import os
-# import itk
-# import datetime
-# import random
+import datetime
+import random
+import math
+import gc
 
+# from tensorflow.python.ops import image_ops
 # from tensorflow_transform.beam.tft_beam_io import transform_fn_io
 # from tensorflow_transform.coders import example_proto_coder
 # from tensorflow_transform.tf_metadata import dataset_metadata
 # from tensorflow_transform.tf_metadata import dataset_schema
 
-from IPython import embed
+# from IPython import embed
 
 class GCSDirSource(FileBasedSource):
     def read_records(self, file_name, range_tracker):
         yield file_name
 
-class TFExampleFromImageDoFn(beam.DoFn):
-    def __init__(self, numpy_output_dir=None, image_output_dir=None):
-        self._numpy_output_dir = numpy_output_dir
-        self._image_output_dir = image_output_dir
+class CreateTFExamples(beam.DoFn):
 
-def _bytes_feature(self, value):
-    return tf.train.Feature(bytes_list=tf.train.BytesList(value=value))
+    def _bytes_feature(self, value):
+        return tf.train.Feature(bytes_list=tf.train.BytesList(value=value))
 
-def _float_feature(self, value):
-    return tf.train.Feature(float_list=tf.train.FloatList(value=value))
+    def _float_feature(self, value):
+        return tf.train.Feature(float_list=tf.train.FloatList(value=value))
 
-def _int_feature(self, value):
-    return tf.train.Feature(int16_list=tf.train.Int16List(value=value))
+    def _int_feature(self, value):
+        return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
 
+    def compute_drr(self, np_arr, dx=128, dy=128, rx=0, ry=0, rz=0, scd=1800, proj_angle=0, thres=-900):
+        import itk
+        ImageType = itk.Image[itk.ctype('signed short'), 3]
+        dtr = (math.atan(1.0)*4.0)/180.0   # to convert the input angle from degree to radian
+        # rotation in x direction with isocenter as center
+        thetax = dtr*rx
+        thetay = dtr*ry
+        thetaz = dtr*rz
 
-def compute_drr(self, np_arr, rx=0, ry=0, rz=0):
-    dtr = (math.atan(1.0)*4.0)/180.0   # to convert the input angle from degree to radian
-    # rotation in x direction with isocenter as center
-    thetax = dtr*rx
-    thetay = dtr*ry
-    thetaz = dtr*rz
+        theta_proj_angle = dtr*proj_angle  # Projection angle
+        m = 2  #further magnification?
+        fac = 1
 
-    thres = -900  # Threshold value
-    proj_angle = dtr*8  # Projection angle
-    scd = 941  # distance from source to patient, value from x-ray above
-    m = 2  #further magnification?
-    fac = 1
+        img = itk.GetImageFromArray(np_arr)
+        img.SetOrigin([0,0,0])
 
-    img = itk.GetImageFromArray(np_arr)
-    img.SetOrigin([0,0,0])
-    spacing = img.GetSpacing() #voxelsize
-    region = img.GetBufferedRegion() # get current image size
+        spacing = img.GetSpacing() #voxelsize
+        region = img.GetBufferedRegion() # get current image size
+        img_size = region.GetSize()
 
-    imgSize = region.GetSize()
+        input_size = img.GetLargestPossibleRegion().GetSize()
+        iso_c = np.array(img_size)/2
+        isocenter = iso_c*spacing
 
-    inputSize = img.GetLargestPossibleRegion().GetSize()
-    isoC = np.array([imgSize[0]/2, imgSize[1]/2, imgSize[2]/2])
-    isocenter = spacing[1]*isoC
+        # apply transformation: Eg: rotation around x-, y-, z-axis
+        transformType = itk.Euler3DTransform[itk.D]
+        imgtransform = transformType.New()
+        imgtransform.SetComputeZYX(True)
+        imgtransform.SetRotation(thetax, thetay, thetaz)
+        imgtransform.SetCenter(isocenter)
 
-    dx = int((imgSize[0]*m)*fac)-50
-    dy = int((imgSize[2]*m)*fac)-50
+        resample_image_filter_type = itk.ResampleImageFilter[ImageType, ImageType]
+        vol_filter = resample_image_filter_type.New()
+        vol_filter.SetInput(img)
+        vol_filter.SetDefaultPixelValue(-1000) # air
+        vol_filter.SetSize(input_size)
+        vol_filter.SetTransform(imgtransform)
+        vol_filter.SetOutputSpacing(spacing)
+        vol_filter.SetOutputOrigin([0,0,0])
+        vol_filter.Update()
 
-    im_sx = spacing[1]/m
-    im_sy = spacing[1]/m
-    o2dx = (dx - 1.0) / 2.0
-    o2dy = (dy - 1.0) / 2.0
+        vol_output = vol_filter.GetOutput()
+        train_volume = itk.GetArrayFromImage(vol_output)
 
-    #output image center
-    outOrigin = [-im_sx * o2dx, -im_sy * o2dy, -scd]
-    outspacing = [im_sx, im_sy, 1]
+        # calculate output values
+        im_sx = spacing[1]/m
+        im_sy = spacing[2]/m
+        # Central axis positions are not given by the user. Use the image centers
+        # as the central axis position
+        o2dx = (dx - 1.0) / 2.0
+        o2dy = (dy - 1.0) / 2.0
+        #output image center
+        out_origin = [-im_sx * o2dx, -im_sy * o2dy, -scd]
+        out_spacing = [im_sx, im_sy, 1]
 
-    rotation_center = np.array([0, 0, 0])
+        # Setup Interpolator
+        siddon_interpolator_type = itk.TwoProjectionRegistration.SiddonJacobsRayCastInterpolateImageFunction[ImageType, itk.D]
+        siddon_interpolator = siddon_interpolator_type.New()
+        siddon_interpolator.SetProjectionAngle(theta_proj_angle)
+        siddon_interpolator.SetFocalPointToIsocenterDistance(scd)
+        siddon_interpolator.SetTransform(imgtransform)
 
-    # apply transformation: Eg: rotation around x-, y-, z-axis
-    transformType = itk.Euler3DTransform[itk.D]
-    imgtransform = transformType.New()
-    imgtransform.SetComputeZYX(True)
-    imgtransform.SetRotation(thetax, thetay, thetaz)
-    imgtransform.SetCenter(isocenter)
+        if thres > -2000:
+          siddon_interpolator.SetThreshold(thres)
 
-    filterType = itk.ResampleImageFilter[ImageType, ImageType]
-    imgfilter = filterType.New()
-    imgfilter.SetInput(img)
-    imgfilter.SetDefaultPixelValue(0)
-    imgfilter.SetSize(inputSize)
+        siddon_interpolator.Initialize()
 
-    # Setup Interpolator
-    interpolatorType = itk.TwoProjectionRegistration.SiddonJacobsRayCastInterpolateImageFunction[ImageType, itk.D]
-    interpolator = interpolatorType.New()
-    interpolator.SetProjectionAngle(proj_angle)
-    interpolator.SetFocalPointToIsocenterDistance(scd)
-    interpolator.SetTransform(imgtransform)
+        img_filter = resample_image_filter_type.New()
+        img_filter.SetInterpolator(siddon_interpolator)
+        img_filter.SetInput(img)
+        img_filter.SetDefaultPixelValue(-1000)
+        img_filter.SetSize([dx, dy, 1])
+        img_filter.SetOutputSpacing(out_spacing)
+        img_filter.SetOutputOrigin(out_origin)
+        img_filter.Update()
 
-    if thres > -2000:
-      interpolator.SetThreshold(thres)
+        img_array = itk.GetArrayFromImage(img_filter.GetOutput())
 
-    interpolator.Initialize()
+        img_output = img_filter.GetOutput()
+        train_image = itk.GetArrayFromImage(img_output)
 
-    imgfilter.SetInterpolator(interpolator)
-    imgfilter.SetSize([dx, dy, 1])
-    imgfilter.SetOutputSpacing(outspacing)
-    imgfilter.SetOutputOrigin(outOrigin)
-    imgfilter.Update()
-
-    img_array = itk.GetArrayFromImage(imgfilter.GetOutput())
-
-    return np.squeeze(img_array)
+        return np.squeeze(train_image), train_volume
 
     @retry.with_exponential_backoff(num_retries=5)
     def load_array(self, url):
@@ -126,67 +134,85 @@ def compute_drr(self, np_arr, rx=0, ry=0, rz=0):
         np.save(file, arr)
         file.close()
 
+    @retry.with_exponential_backoff(num_retries=5)
+    def save_tfrecord(self, path, proto):
+        writer = tf.python_io.TFRecordWriter(path)
+        writer.write(proto.SerializeToString())
+        writer.close()
+
     def process(self, element):
-        np_arr = self.load_array(element)
-        # reassign CT tube to smallest value
-        non_cyl_min = np.min(np_arr[np_arr > -2000])
-        np_arr[np_arr < -1500] = non_cyl_min
+        path = element
+        filename = path.split('/')[-1]
+        patient_id, dir_hash = filename.split('-')
+        np_arr = self.load_array(path)
+        rx = 0
+        ry = 0
+        rz = 0
+        scd = 1800
+        proj_angle = 0
+        thres = -900
+        np_img, np_vol = self.compute_drr(np_arr, rx=rx, ry=ry, rz=rz, scd=scd, proj_angle=proj_angle, thres=thres)
 
-        # make array a cube
-        x, y, z = np_arr.shape
-        if z < min(x, y):
-            startx = x//2 - z//2
-            starty = y//2 - z//2
-            cubed_arr = np_arr[startx:startx+z, starty:starty+z, :]
-        else:
-            max_xyz = max(x, y, z)
-            startx = (max_xyz - x)//2
-            endx = max_xyz - x - startx
-            starty = (max_xyz - y)//2
-            endy = max_xyz - y - starty
-            cubed_arr = np.pad(np_arr, ((startx, endx), (starty, endy), (0, 0)), mode='constant', constant_values=non_cyl_min)
+        np_img = np_img[..., np.newaxis, np.newaxis]
+        np_vol = np_vol[..., np.newaxis]
+
+        example = tf.train.Example(features=tf.train.Features(feature={
+            'image': self._int_feature(np_img.ravel()),
+            'volume': self._int_feature(np_vol.ravel()),
+            'meta/rx': self._float_feature([rx]),
+            'meta/ry': self._float_feature([ry]),
+            'meta/rz': self._float_feature([rz]),
+            'meta/scd': self._float_feature([scd]),
+            'meta/proj_angle': self._float_feature([proj_angle]),
+            'meta/thres': self._float_feature([thres]),
+            'meta/filename': self._bytes_feature([filename.encode("utf8")]),
+            'meta/patient_id': self._bytes_feature([patient_id.encode("utf8")]),
+            'meta/dir_hash': self._bytes_feature([dir_hash.encode("utf8")])}))
         del np_arr
+        del np_img
+        del np_vol
+        gc.collect()
+        # self.save_tfrecord('gs://cxr-to-chest-ct2/dummy/dummy.tfrecord', example)
+        # del example
+        yield example
+        # yield path
 
-        x, y, z = cubed_arr.shape
-        assert x == y and y == z and z == x, 'all dimensions are the same size'
-
-        scale = 128.0/x
-        resized_arr = zoom(cubed_arr, (scale, scale, scale))
-        del cubed_arr
-        assert resized_arr.shape == (128, 128, 128), 'resized array is 128x128x128'
-
+current_time = datetime.datetime.now().strftime("%Y-%m-%d--%Hh%Mm%Ss")
 
 options = PipelineOptions(flags=sys.argv)
 google_cloud_options = options.view_as(GoogleCloudOptions)
 google_cloud_options.project = 'x-ray-reconstruction'
-google_cloud_options.job_name = 'process-training-data'
+google_cloud_options.job_name = 'create-tfrecords-'+current_time
 google_cloud_options.staging_location = 'gs://cxr-to-chest-ct2/binaries'
 google_cloud_options.temp_location = 'gs://cxr-to-chest-ct2/temp'
+# google_cloud_options.region = 'us-east4'
 # google_cloud_options.machine_type = 'n1-highmem-2'
 options.view_as(SetupOptions).save_main_session = True
 
 with beam.Pipeline(options=options) as p:
-    import random
-    import datetime
-    current_time = datetime.datetime.now().strftime("%Y-%m-%d--%H.%M.%S")
+    # coder = example_proto_coder.ExampleProtoCoder(metadata.schema)
 
     train_dataset_prefix = os.path.join('gs://cxr-to-chest-ct2/tfrecords/', current_time, 'train')
     test_dataset_prefix = os.path.join('gs://cxr-to-chest-ct2/tfrecords/', current_time, 'test')
     train_drr_prefix = os.path.join('gs://cxr-to-chest-ct2/drr/', current_time, 'train')
     test_drr_prefix = os.path.join('gs://cxr-to-chest-ct2/drr/', current_time, 'test')
-    test_percent = 20.0
-    random.seed(0)
 
+    dummy_prefix = os.path.join('gs://cxr-to-chest-ct2/tfrecords/', current_time, 'dummy2')
     # gcs = beam.io.gcp.gcsfilesystem.GCSFileSystem(options)
     # coder = example_proto_coder.ExampleProtoCoder(metadata.schema)
 
-    path = 'gs://cxr-to-chest-ct2/resampled/numpy-int-rotated/*.npy'
+    path = 'gs://cxr-to-chest-ct2/volumes/numpy/cubes/int-128x128x128/*.npy'
 
     # urls = list(map(lambda x: x.path, gcs.match(['gs://cxr-to-chest-ct2/resampled/numpy-int-rotated/*.npy'])[0].metadata_list))
 
-    # numpy_urls = p | 'create urls for np arrays' >> beam.Create(urls)
+    _ = (p | 'create urls for np arrays' >> beam.io.Read(GCSDirSource(path))
+           | 'create TFExamples' >> beam.ParDo(CreateTFExamples())
+           # | 'create TFExamples' >> beam.ParDo(CreateTFExamples()) )
+           # | 'SerializeToString' >> beam.Map(lambda x: x.SerializeToString())
+           | 'save as TFRecords' >> beam.io.WriteToTFRecord(file_path_prefix=dummy_prefix, file_name_suffix='.tfrecord', coder=beam.coders.ProtoCoder(tf.train.Example), num_shards=1000) )
+           # | 'save as TFRecords' >> beam.io.tfrecordio.WriteToTFRecord(file_path_prefix=dummy_prefix, file_name_suffix='.proto', coder=coder) )
 
-    numpy_urls = p | 'create urls for np arrays' >> beam.io.Read(GCSDirSource(path))
+
 
     # assert 0 < test_percent < 100, 'test_percent must in the range (0-100)'
 
@@ -197,7 +223,7 @@ with beam.Pipeline(options=options) as p:
 
     # embed()
 
-    stuff = numpy_urls | 'create training tf_records' >> beam.ParDo(TFExampleFromImageDoFn())
+    # stuff = numpy_urls | 'create training tf_records' >> beam.ParDo(CreateTFExamples())
 
     # _ = (
     #     train_dataset
