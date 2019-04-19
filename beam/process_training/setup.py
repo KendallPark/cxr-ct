@@ -78,7 +78,7 @@ class CustomCommands(setuptools.Command):
     for command in CUSTOM_COMMANDS:
       self.RunCustomCommand(command)
 
-REQUIRED_PACKAGES = ['apache-beam[gcp]', 'tensorflow', 'numpy', 'sklearn', 'scipy', 'itk==5.0rc1', 'itk-twoprojectionregistration']
+REQUIRED_PACKAGES = ['apache-beam[gcp]', 'tensorflow', 'numpy', 'sklearn', 'scipy', 'itk==5.0rc1', 'itk-twoprojectionregistration', 'adjspecies']
 PACKAGE_NAME = 'process_numpy'
 PACKAGE_VERSION = '0.0.1'
 setuptools.setup(
