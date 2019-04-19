@@ -16,6 +16,7 @@ sklearn = "*"
 tensorflow-transform = "*"
 itk = "*"
 itk-twoprojectionregistration = "*"
+adjspecies = "*"
 
 [requires]
 python_version = "2.7.14"

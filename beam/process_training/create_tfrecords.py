@@ -7,6 +7,7 @@ from apache_beam.io.filebasedsource import FileBasedSource
 from apache_beam.utils import retry
 from scipy.ndimage import zoom
 
+
 import tensorflow as tf
 import numpy as np
 import sys
@@ -15,6 +16,7 @@ import datetime
 import random
 import math
 import gc
+import adjspecies
 
 # from tensorflow.python.ops import image_ops
 # from tensorflow_transform.beam.tft_beam_io import transform_fn_io
@@ -39,7 +41,7 @@ class CreateTFExamples(beam.DoFn):
     def _int_feature(self, value):
         return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
 
-    def compute_drr(self, np_arr, dx=128, dy=128, rx=0, ry=0, rz=0, scd=1800, proj_angle=0, thres=-900):
+    def compute_drr(self, np_arr, dx=128, dy=128, dz=128, tx=0, ty=0, tz=0, rx=0, ry=0, rz=0, scd=1800, proj_angle=0, thres=-900):
         import itk
         ImageType = itk.Image[itk.ctype('signed short'), 3]
         dtr = (math.atan(1.0)*4.0)/180.0   # to convert the input angle from degree to radian
@@ -67,6 +69,7 @@ class CreateTFExamples(beam.DoFn):
         transformType = itk.Euler3DTransform[itk.D]
         imgtransform = transformType.New()
         imgtransform.SetComputeZYX(True)
+        imgtransform.SetTranslation([tx, ty, tz])
         imgtransform.SetRotation(thetax, thetay, thetaz)
         imgtransform.SetCenter(isocenter)
 
@@ -134,24 +137,23 @@ class CreateTFExamples(beam.DoFn):
         np.save(file, arr)
         file.close()
 
-    @retry.with_exponential_backoff(num_retries=5)
-    def save_tfrecord(self, path, proto):
-        writer = tf.python_io.TFRecordWriter(path)
-        writer.write(proto.SerializeToString())
-        writer.close()
-
     def process(self, element):
         path = element
         filename = path.split('/')[-1]
         patient_id, dir_hash = filename.split('-')
         np_arr = self.load_array(path)
-        rx = 0
-        ry = 0
-        rz = 0
+        # iterate through all faces of cube
         scd = 1800
         proj_angle = 0
         thres = -900
-        np_img, np_vol = self.compute_drr(np_arr, rx=rx, ry=ry, rz=rz, scd=scd, proj_angle=proj_angle, thres=thres)
+        tx = 0
+        ty = 0
+        tz = 0
+        rx = 0
+        ry = 0
+        rz = 0
+
+        np_img, np_vol = self.compute_drr(np_arr, tx=tx, ty=ty, tz=tz, rx=rx, ry=ry, rz=rz, scd=scd, proj_angle=proj_angle, thres=thres)
 
         np_img = np_img[..., np.newaxis, np.newaxis]
         np_vol = np_vol[..., np.newaxis]
@@ -168,21 +170,17 @@ class CreateTFExamples(beam.DoFn):
             'meta/filename': self._bytes_feature([filename.encode("utf8")]),
             'meta/patient_id': self._bytes_feature([patient_id.encode("utf8")]),
             'meta/dir_hash': self._bytes_feature([dir_hash.encode("utf8")])}))
-        del np_arr
         del np_img
         del np_vol
         gc.collect()
-        # self.save_tfrecord('gs://cxr-to-chest-ct2/dummy/dummy.tfrecord', example)
-        # del example
         yield example
-        # yield path
 
-current_time = datetime.datetime.now().strftime("%Y-%m-%d--%Hh%Mm%Ss")
+session_nickname = adjspecies.random_adjspecies('-')+'-'+datetime.datetime.now().strftime("%Y-%m-%d--%Hh%Mm%Ss")
 
 options = PipelineOptions(flags=sys.argv)
 google_cloud_options = options.view_as(GoogleCloudOptions)
 google_cloud_options.project = 'x-ray-reconstruction'
-google_cloud_options.job_name = 'create-tfrecords-'+current_time
+google_cloud_options.job_name = 'create-tfrecords-'+session_nickname
 google_cloud_options.staging_location = 'gs://cxr-to-chest-ct2/binaries'
 google_cloud_options.temp_location = 'gs://cxr-to-chest-ct2/temp'
 # google_cloud_options.region = 'us-east4'
@@ -192,26 +190,37 @@ options.view_as(SetupOptions).save_main_session = True
 with beam.Pipeline(options=options) as p:
     # coder = example_proto_coder.ExampleProtoCoder(metadata.schema)
 
-    train_dataset_prefix = os.path.join('gs://cxr-to-chest-ct2/tfrecords/', current_time, 'train')
-    test_dataset_prefix = os.path.join('gs://cxr-to-chest-ct2/tfrecords/', current_time, 'test')
-    train_drr_prefix = os.path.join('gs://cxr-to-chest-ct2/drr/', current_time, 'train')
-    test_drr_prefix = os.path.join('gs://cxr-to-chest-ct2/drr/', current_time, 'test')
+    train_dataset_prefix = os.path.join('gs://cxr-to-chest-ct2/tfrecords/', session_nickname, 'train')
+    test_dataset_prefix = os.path.join('gs://cxr-to-chest-ct2/tfrecords/', session_nickname, 'test')
+    # train_drr_prefix = os.path.join('gs://cxr-to-chest-ct2/drr/', session_nickname, 'train')
+    # test_drr_prefix = os.path.join('gs://cxr-to-chest-ct2/drr/', session_nickname, 'test')
 
-    dummy_prefix = os.path.join('gs://cxr-to-chest-ct2/tfrecords/', current_time, 'dummy2')
+    # dummy_prefix = os.path.join('gs://cxr-to-chest-ct2/tfrecords/', session_nickname, 'dummy2')
     # gcs = beam.io.gcp.gcsfilesystem.GCSFileSystem(options)
     # coder = example_proto_coder.ExampleProtoCoder(metadata.schema)
 
-    path = 'gs://cxr-to-chest-ct2/volumes/numpy/cubes/int-128x128x128/*.npy'
-
+    # path = 'gs://cxr-to-chest-ct2/volumes/numpy/cubes/int-128x128x128/*.npy'
+    path = 'gs://cxr-to-chest-ct2/volumes/numpy/cubes/normalized_and_padded/*npy'
     # urls = list(map(lambda x: x.path, gcs.match(['gs://cxr-to-chest-ct2/resampled/numpy-int-rotated/*.npy'])[0].metadata_list))
 
-    _ = (p | 'create urls for np arrays' >> beam.io.Read(GCSDirSource(path))
-           | 'create TFExamples' >> beam.ParDo(CreateTFExamples())
-           # | 'create TFExamples' >> beam.ParDo(CreateTFExamples()) )
-           # | 'SerializeToString' >> beam.Map(lambda x: x.SerializeToString())
-           | 'save as TFRecords' >> beam.io.WriteToTFRecord(file_path_prefix=dummy_prefix, file_name_suffix='.tfrecord', coder=beam.coders.ProtoCoder(tf.train.Example), num_shards=1000) )
-           # | 'save as TFRecords' >> beam.io.tfrecordio.WriteToTFRecord(file_path_prefix=dummy_prefix, file_name_suffix='.proto', coder=coder) )
+    urls = p | 'create urls for np arrays' >> beam.io.Read(GCSDirSource(path))
 
+    train_urls, test_urls = (
+        urls
+        | 'split dataset' >> beam.Partition(
+            lambda elem, _: 1 if elem[-14] == '0' else 0, 2) ) # if the last digit is 0, test set
+
+    # test_urls | 'Print' >> beam.ParDo(lambda (w): print('%s' % (w)))
+
+    _ = (
+        train_urls
+        | 'create train TFExamples' >> beam.ParDo(CreateTFExamples())
+        | 'save as train TFRecords' >> beam.io.WriteToTFRecord(file_path_prefix=train_dataset_prefix, file_name_suffix='.tfrecord', coder=beam.coders.ProtoCoder(tf.train.Example)) )
+
+    _ = (
+        test_urls
+        | 'create test TFExamples' >> beam.ParDo(CreateTFExamples())
+        | 'save as test TFRecords' >> beam.io.WriteToTFRecord(file_path_prefix=test_dataset_prefix, file_name_suffix='.tfrecord', coder=beam.coders.ProtoCoder(tf.train.Example)) )
 
 
     # assert 0 < test_percent < 100, 'test_percent must in the range (0-100)'
