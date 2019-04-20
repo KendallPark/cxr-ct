@@ -5,6 +5,7 @@ from apache_beam.options.pipeline_options import GoogleCloudOptions
 from apache_beam.options.pipeline_options import SetupOptions
 from apache_beam.io.filebasedsource import FileBasedSource
 from apache_beam.utils import retry
+from scipy.ndimage import zoom
 # from google.oauth2 import service_account
 import pydicom
 import os
@@ -25,15 +26,6 @@ from nibabel import processing
 # from IPython import embed
 
 # GCS_BUCKET = 'gs://cxr-to-chest-ct/'
-
-def _float_feature(value):
-    return tf.train.Feature(float_list=tf.train.FloatList(value=value))
-
-def _int64_feature(value):
-    return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
-
-def _bytes_feature(value):
-    return tf.train.Feature(bytes_list=tf.train.BytesList(value=value))
 
 class CsvFileSource(FileBasedSource):
   def read_records(self, file_name, range_tracker):
@@ -80,7 +72,8 @@ class DoEverything(beam.DoFn):
         resampled = processing.resample_to_output(result)
         del result
         qoffset = list(resampled.header.get_sform()[:3, -1])
-        npy_arr = resampled.get_fdata(dtype=np.float32).astype(np.int16)
+        npy_arr = np.ascontiguousarray(np.rot90(np.swapaxes(resampled.get_fdata(dtype=np.float32).astype(np.int16),0,2), k=2, axes=(0,2) ) )
+
         del resampled
         gc.collect()
         path = os.path.join(self._gcs_save_dir, key+'.npy')
@@ -210,7 +203,7 @@ class GenerateTFExamplesFromNumpyEmbeddingsDoFn(beam.DoFn):
 options = PipelineOptions(flags=sys.argv)
 google_cloud_options = options.view_as(GoogleCloudOptions)
 google_cloud_options.project = 'x-ray-reconstruction'
-google_cloud_options.job_name = 'numpy-highmem-int16-1'
+google_cloud_options.job_name = 'numpy-highmem-int16-with-rotation'
 google_cloud_options.staging_location = 'gs://cxr-to-chest-ct2/binaries'
 google_cloud_options.temp_location = 'gs://cxr-to-chest-ct2/temp'
 # google_cloud_options.machine_type = 'n1-highmem-2'
@@ -222,7 +215,7 @@ with beam.Pipeline(options=options) as p:
 
     dicom_urls = p | 'read csv file' >> beam.io.textio.ReadFromText('gs://cxr-to-chest-ct/datasets/LIDC-IDRI Dataset/ct_scan_urls.csv') | 'split stuff' >> beam.ParDo(Split())
 
-    saved_arrays = dicom_urls | 'draw the rest of the owl' >> beam.ParDo(DoEverything('gs://cxr-to-chest-ct/', 'gs://cxr-to-chest-ct2/resampled/numpy-int/'))
+    saved_arrays = dicom_urls | 'draw the rest of the owl' >> beam.ParDo(DoEverything('gs://cxr-to-chest-ct/', 'gs://cxr-to-chest-ct2/resampled/numpy-int-rotated-correctly/'))
 
     # nii_arrays = dicom_urls | 'dicom to nifty' >> beam.ParDo(DicomToNifty('gs://cxr-to-chest-ct/'))
     # resampled_nii = nii_arrays | 'resample arrays' >> beam.ParDo(ResampleNifty())
