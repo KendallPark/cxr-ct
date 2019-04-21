@@ -4,11 +4,14 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
+ipython = "*"
 
 [packages]
-
 tensorflow = "*"
 setuptools = "*"
+google-cloud-storage = "*"
+adjspecies = {git = "https://github.com/hipikat/adjspecies"}
+numpy = "*"
 
 [requires]
 python_version = "3.7"
