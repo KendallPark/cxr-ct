@@ -6,6 +6,11 @@ verify_ssl = true
 [dev-packages]
 ipython = "*"
 gcloud = "*"
+<<<<<<< HEAD:beam/dicom_to_numpy/Pipfile
+=======
+python-language-server = {extras = ["all"],version = "*"}
+matplotlib = "==2.1.0"
+>>>>>>> feat: use full resolution volumes then shrink:beam/process_training/Pipfile
 
 [packages]
 apache-beam = {extras = ["gcp"],version = "*"}
