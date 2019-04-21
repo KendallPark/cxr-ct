@@ -2,3 +2,4 @@
 
 *.nii
 *.egg-info
+/model/cloud/MANIFEST
