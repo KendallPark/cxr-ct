@@ -77,7 +77,7 @@ class CustomCommands(setuptools.Command):
     for command in CUSTOM_COMMANDS:
       self.RunCustomCommand(command)
 
-REQUIRED_PACKAGES = ['numpy']
+REQUIRED_PACKAGES = ['numpy', 'coolname']
 PACKAGE_NAME = 'train'
 PACKAGE_VERSION = '0.0.1'
 setuptools.setup(

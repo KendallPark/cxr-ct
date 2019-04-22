@@ -1,11 +1,20 @@
 from __future__ import absolute_import, division, print_function
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPooling2D, BatchNormalization, Activation
+from tensorflow.keras.layers import Flatten, Conv2D, MaxPooling2D, BatchNormalization, Activation
 from tensorflow.keras.models import model_from_json
 import numpy as np
 import time
+import types
 
+# from IPython import embed
+
+# Wrap the save_model function with
+from keras.engine.saving import allow_write_to_gcs, allow_read_from_gcs
+tf.keras.models.save_model = allow_write_to_gcs(tf.keras.models.save_model)
+tf.keras.models.load_model = allow_read_from_gcs(tf.keras.models.load_model)
+
+def _save_wrapper(self, filepath, overwrite=True, include_optimizer=True, save_format=None):
+  tf.keras.models.save_model(self, filepath, overwrite, include_optimizer)
 
 def hg_model():
     input = tf.keras.layers.Input((256, 256, 1))
@@ -171,6 +180,9 @@ def hg_model():
 
     model = tf.keras.models.Model(input, output)
 
+    # dirty patching of save with allow_write_to_gcs decorator from master branch of keras
+    model.save = types.MethodType(_save_wrapper, model)
+
     return model
 
 
@@ -312,59 +324,3 @@ def create_keras_model(learning_rate):
                   metrics=['accuracy', 'mean_squared_error'])
 
     return model
-
-if __name__ == '__main__':
-    # record starting time
-    time_start = time.time()
-
-    dict_2_img = test_import_data_2_images()  # import test data
-
-    model = hg_model()
-
-    # regularization
-    # add_regularization(model, ['reshg1_low5'])
-
-    # compile model
-    learning_rate = 0.001
-    b1 = 0.9
-    b2 = 0.999
-    adam = tf.keras.optimizers.Adam(lr=learning_rate, beta_1=b1, beta_2=b2)
-
-    model.compile(optimizer=adam,
-                  loss='mean_squared_error',
-                  metrics=['accuracy', 'mean_squared_error'])
-
-    time_after_compile = time.time()
-    # print(model.summary())
-    # print_weights(model)
-
-    train_images = dict_2_img['train_images_2_img']
-    train_labels = dict_2_img['train_labels_2x3']
-    # train_labels=test_import_data_2_3D_scan()
-    # hist=model.fit(train_images, train_labels, epochs=2)
-    # msg_history = hist.history # training progress record
-
-    time_after_training = time.time()
-
-    # model_weights_path='C:\\Users\\Lanston\\Desktop\\training_setting\\weight\\model_weights01.h5'
-    model_weights_path = '/model_weight/model_weights01.h5'
-    model.save_weights(model_weights_path)
-
-    # model_structure_path='C:\\Users\\Lanston\\Desktop\\training_setting\\structure\\model01.json'
-    model_structure_path = '/model_structure/model01.json'
-    model_structure = model.to_json()
-
-    with open(model_structure_path, "w") as json_file:
-        json_file.write(model_structure)
-        json_file.close
-
-    time_after_export = time.time()
-
-    # record ending time
-    time_end = time.time()
-
-    # print running time
-    print("Total running time: " + str(time_end - time_start) + "s")  # in seconds
-    print("Compile time: " + str(time_after_compile - time_start) + "s")  # in seconds
-    print("Training time: " + str(time_after_training - time_after_compile) + "s")  # in seconds
-    print("Export time: " + str(time_after_export - time_after_training) + "s")  # in seconds

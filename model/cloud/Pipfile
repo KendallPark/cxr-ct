@@ -12,6 +12,8 @@ setuptools = "*"
 google-cloud-storage = "*"
 adjspecies = {git = "https://github.com/hipikat/adjspecies"}
 numpy = "*"
+coolname = "*"
+keras = {git = "https://github.com/keras-team/keras"}
 
 [requires]
 python_version = "3.7"

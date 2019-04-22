@@ -1,0 +1,7 @@
+trainingInput:
+  pythonVersion: '3.5'
+  runtimeVersion: '1.13'
+  jobDir: gs://cxr-to-chest-ct2/gcp-training
+  args:
+    - --data-dir
+    - tfrecords/big-dobie-2019-04-21--11h59m35s
