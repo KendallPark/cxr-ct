@@ -18,8 +18,6 @@ from . import model
 import tensorflow as tf
 from tensorflow.contrib.training.python.training import hparam
 from google.cloud import storage
-import keras
-from keras.engine.saving import allow_write_to_gcs, allow_read_from_gcs
 
 import datetime
 from coolname import generate_slug
