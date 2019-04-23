@@ -1,15 +1,15 @@
-## How to run
+## How to run job in Google's AI Platform
 
 ### Dependencies
 
 - need to [install `gcloud` utility](https://cloud.google.com/sdk/install)
 - need to authenticate with an account that access to `x-ray-reconstruction` project and `cxr-to-chest-ct2` bucket.
 
-### Submit training job
+### Submit training job (in local terminal)
 
-- make sure you're in the `cloud` directory
+- in local terminal, make sure you're in the `./cxr-ct/model/cloud` directory
 
-Example training job:
+### Example training job:
 
 ```
 gcloud ml-engine jobs submit training my_job_name \
@@ -17,6 +17,17 @@ gcloud ml-engine jobs submit training my_job_name \
 --staging-bucket 'gs://cxr-to-chest-ct2/gcp-training/staging' \
 --python-version 3.5 --runtime-version 1.13
 --packages packages/Keras-2.2.4.tar.gz,packages/Keras-2.2.4-py3-none-any.whl
+
+```
+
+### Example training job (version 2):
+# please run the code in the local terminal
+# version 2 is tested by Lanston under Windows 10
+
+```
+
+gcloud ml-engine jobs submit training try_21 --config=config.yaml --module-name train.task --package-path train --staging-bucket gs://cxr-to-chest-ct2 --packages packages/Keras-2.2.4.tar.gz,packages/Keras-2.2.4-py3-none-any.whl --region us-central1
+
 ```
 
 ### Using different datasets
