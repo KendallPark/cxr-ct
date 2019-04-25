@@ -61,7 +61,7 @@ def get_args():
   parser.add_argument(
       '--num-epochs',
       type=int,
-      default=20,
+      default=1,
       help='number of times to go through the data, default=20')
   parser.add_argument(
       '--batch-size',
@@ -138,7 +138,10 @@ def train_and_evaluate(hparams):
   checkpoint_path = os.path.join(job_path, 'checkpoints')
 
   tensorboard = tf.keras.callbacks.TensorBoard(log_dir=tb_logs_path, histogram_freq=0, write_graph=True, write_images=True)
-  model_checkpoint = tf.keras.callbacks.ModelCheckpoint(checkpoint_path)
+  # to load tensorboard, put the log in "./logs" and run "tensorboard --logdir ./logs"
+
+  model_checkpoint = tf.keras.callbacks.ModelCheckpoint(checkpoint_path, save_weights_only=False)
+  # save_weights_only = False, so that the checkpoint file will save model structure as well
 
   # Train model
   keras_model.fit(
