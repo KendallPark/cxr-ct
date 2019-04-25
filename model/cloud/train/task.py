@@ -12,8 +12,10 @@ from __future__ import print_function
 import argparse
 import os
 
-from . import model
-# import model  # for local running
+try:
+  from . import model
+except ImportError:
+  import model  # for local running
 
 import tensorflow as tf
 from tensorflow.contrib.training.python.training import hparam

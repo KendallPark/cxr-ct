@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "af119d907250801114e74d7d08516f55b9ae56a33f9392880544faf80f149a3d"
+            "sha256": "c0e6ba9366ecd07d54722015542de8a9d8ee44e5df6409213131c924f0a16534"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -178,6 +178,7 @@
                 "sha256:e58a25764472af07b7e1c4b10b0179c8ea726446c7141076286e41891bf3a563",
                 "sha256:f3b49107fbfc77333fc2b1ef4d5de2abcd57e7ea3a1482455229494cf2da56ce"
             ],
+            "index": "pypi",
             "version": "==2.9.0"
         },
         "idna": {
@@ -189,7 +190,7 @@
         },
         "keras": {
             "git": "https://github.com/keras-team/keras",
-            "ref": "f69e046eef93af5a28de5330bfe15ee348520b2d"
+            "ref": "34231971fa47cb2477b357c1a368978de4128294"
         },
         "keras-applications": {
             "hashes": [
@@ -287,10 +288,10 @@
         },
         "pyasn1-modules": {
             "hashes": [
-                "sha256:79580acf813e3b7d6e69783884e6e83ac94bf4617b36a135b85c599d8a818a7b",
-                "sha256:a52090e8c5841ebbf08ae455146792d9ef3e8445b21055d3a3b7ed9c712b7c7c"
+                "sha256:ef721f68f7951fab9b0404d42590f479e30d9005daccb1699b0a51bb4177db96",
+                "sha256:f309b6c94724aeaf7ca583feb1cc70430e10d7551de5e36edfc1ae6909bcfb3c"
             ],
-            "version": "==0.2.4"
+            "version": "==0.2.5"
         },
         "pytz": {
             "hashes": [
@@ -408,11 +409,11 @@
         },
         "ipython": {
             "hashes": [
-                "sha256:b038baa489c38f6d853a3cfc4c635b0cda66f2864d136fe8f40c1a6e334e2a6b",
-                "sha256:f5102c1cd67e399ec8ea66bcebe6e3968ea25a8977e53f012963e5affeb1fe38"
+                "sha256:54c5a8aa1eadd269ac210b96923688ccf01ebb2d0f21c18c3c717909583579a8",
+                "sha256:e840810029224b56cd0d9e7719dc3b39cf84d577f8ac686547c8ba7a06eeab26"
             ],
             "index": "pypi",
-            "version": "==7.4.0"
+            "version": "==7.5.0"
         },
         "ipython-genutils": {
             "hashes": [
