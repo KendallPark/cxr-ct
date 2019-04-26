@@ -92,9 +92,9 @@ def _parse_function(proto):
 
   return parsed_features['image'], parsed_features['volume']
 
-def create_dataset(filenames_train, perform_shuffle=False, shuffle_buffer=256, batch_size=1):
+def create_dataset(filenames, perform_shuffle=False, shuffle_buffer=256, batch_size=1):
     # This works with arrays as well
-    dataset = tf.data.TFRecordDataset(filenames_train)
+    dataset = tf.data.TFRecordDataset(filenames)
     # Maps the parser on every filepath in the array. You can set the number of parallel loaders here
     dataset = dataset.map(_parse_function, num_parallel_calls=8)
     # This dataset will go on forever
