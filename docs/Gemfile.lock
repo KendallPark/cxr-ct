@@ -1,13 +1,19 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    activesupport (4.2.10)
+    activesupport (4.2.11.1)
       i18n (~> 0.7)
       minitest (~> 5.1)
       thread_safe (~> 0.3, >= 0.3.4)
       tzinfo (~> 1.1)
     addressable (2.5.2)
       public_suffix (>= 2.0.2, < 4.0)
+    bulma-clean-theme (0.3)
+      jekyll (~> 3.8)
+      jekyll-feed (~> 0.11)
+      jekyll-paginate (~> 1.1)
+      jekyll-seo-tag (~> 2.5)
+      jekyll-sitemap (~> 1.2)
     coffee-script (2.4.1)
       coffee-script-source
       execjs
@@ -29,11 +35,11 @@ GEM
       multipart-post (>= 1.2, < 3)
     ffi (1.10.0)
     forwardable-extended (2.6.0)
-    gemoji (3.0.0)
-    github-pages (197)
-      activesupport (= 4.2.10)
+    gemoji (3.0.1)
+    github-pages (198)
+      activesupport (= 4.2.11.1)
       github-pages-health-check (= 1.16.1)
-      jekyll (= 3.7.4)
+      jekyll (= 3.8.5)
       jekyll-avatar (= 0.6.0)
       jekyll-coffeescript (= 1.1.1)
       jekyll-commonmark-ghpages (= 0.1.5)
@@ -87,7 +93,7 @@ GEM
     http_parser.rb (0.6.0)
     i18n (0.9.5)
       concurrent-ruby (~> 1.0)
-    jekyll (3.7.4)
+    jekyll (3.8.5)
       addressable (~> 2.4)
       colorator (~> 1.0)
       em-websocket (~> 0.5)
@@ -242,10 +248,10 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  bulma-clean-theme
   github-pages
-  jekyll (~> 3.7.3)
+  jekyll (~> 3.8)
   jekyll-feed (~> 0.6)
-  jekyll-theme-slate
   tzinfo-data
 
 BUNDLED WITH

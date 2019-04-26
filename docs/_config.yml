@@ -24,7 +24,7 @@ github_username:  jekyll
 
 # Build settings
 markdown: kramdown
-theme: jekyll-theme-slate
+theme: bulma-clean-theme
 plugins:
   - jekyll-feed
 #include:
