@@ -1,5 +1,0 @@
-- name: Overview
-  link: /overview/
-  dropdown:
-    - name: Progress
-      link: /progress/

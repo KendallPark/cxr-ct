@@ -2,7 +2,6 @@
 layout: page
 title: Overview
 ---
-# Overview
 
 
 # State-of-the-art

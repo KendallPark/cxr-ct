@@ -13,10 +13,9 @@
 # you will see them accessed via {{ site.title }}, {{ site.email }}, and so on.
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
-title: CNN-based 3D reconstruction of radiodensities from 2D chest X-rays
+title: A CNN-based 3D reconstruction of radiodensities from 2D chest X-rays
 email: your-email@example.com
-description: >- # this means to ignore newlines until "baseurl:"
-  CS766 - Spring 2019
+description: "CS766 - Spring 2019"
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
 twitter_username: jekyllrb
@@ -24,13 +23,15 @@ github_username:  jekyll
 
 # Build settings
 markdown: kramdown
-theme: bulma-clean-theme
+theme: minima
 plugins:
   - jekyll-feed
-#include:
-#  - about.md
-#  - index.md
-#  - overview.md
+header_pages:
+  - about.md
+  - index.md
+  - overview.md
+  - method.md
+  - progress.md
 # Exclude from processing.
 # The following items will not be processed, by default. Create a custom list
 # to override the default setting.
