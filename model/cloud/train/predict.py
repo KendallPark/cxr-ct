@@ -1,3 +1,5 @@
+# not yet constructed the gcloud part. to run this script, just simply run >python predict.py
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -16,16 +18,19 @@ def get_args():
   parser.add_argument(
       '--model-dir',
       default='gs://cxr-to-chest-ct2/gcp-training/vanilla-model/keras_export/1555903332',
+      #default='C:\\Users\\Lanston\\Desktop\\keras_export\\1555903332',
       type=str,
       help='project name')
   parser.add_argument(
       '--input-paths',
       default='gs://cxr-to-chest-ct2/tfrecords/silly-cat-2019-04-20--23h57m53s/train-00000-of-00917.tfrecord,gs://cxr-to-chest-ct2/tfrecords/silly-cat-2019-04-20--23h57m53s/train-00001-of-00917.tfrecord',
+      #default='C:\\Users\\Lanston\\Desktop\\tfrecords\\train-00200-of-00917.tfrecord',
       type=str,
       help='project name')
   parser.add_argument(
       '--output-dir',
       default='predictions',
+      #default='C:\\Users\\Lanston\\Desktop\\keras_export\\output\\200\\',
       type=str,
       help='project name')
   parser.add_argument(
