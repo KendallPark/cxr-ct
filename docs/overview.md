@@ -1,10 +1,13 @@
 ---
 layout: default
 title: Overview
+permalink: /overview/
 ---
 
 
 # State-of-the-art
+
+
 
 No one has tried to solve this problem in the context of chest X-rays and chest CTs. However, there exist several works that can perform 2D-to-3D reconstruction in different but similar domains. Henzler et al. (2018) has performed 2D-to-3D volume reconstruction of mammalian crania using a Convolutional Neural Network (CNN) with an encoder-decoder structure. However, they focused on optimizing surface structure and the generalizability of the algorithm (reconstruction any angle, wide variety of species). In constructing 3D volume from 2D images, Jackson et al. (2017) proposed a Volumetric Regression CNN (VRN) built upon paired 2D images and 3D facial models or scans. Their model is able to reconstruct 3D human faces from a single photograph taken at any angle. Karade and Ravi (2015) used a “bone template reconfiguration” algorithm involving Kohonen self-organizing maps to simulate 3D surface geometry of femur from biplane X-ray images.
 

@@ -1,6 +1,7 @@
 ---
 layout: default
 title: Progress
+permalink: /progress/
 ---
 
 ## Project Proposal 

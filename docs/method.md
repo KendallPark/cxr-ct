@@ -1,6 +1,7 @@
 ---
 layout: default
 title: Methodology
+permalink: /method/
 ---
 
 
