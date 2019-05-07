@@ -1,0 +1,13 @@
+Manipulate[
+ 
+Show[Image3D[dataCube, ColorFunction -> myColorFunction, 
+   
+Method -> {"VolumeLighting" -> "EnhancedEdge", 
+     
+"InterpolateValues" -> True}], Lighting -> {{"Ambient", White}}, 
+  
+Background -> Black, Axes -> True, 
+  
+AxesLabel -> {Style["z", Bold, 16], Style["y", Bold, 16], 
+    
+Style["x", Bold, 16]}, ViewPoint -> {u, 1, 1}], {u, 1, 5}]

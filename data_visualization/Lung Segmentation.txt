@@ -1,0 +1,17 @@
+myColorFunction = 
+(If[# == 0, Transparent, Hue[#, 1, 1, 0.1]] &);
+
+Show[Image3D[dataCube, ColorFunction -> myColorFunction, 
+  
+Method -> {"VolumeLighting" -> "EnhancedEdge", 
+    
+"InterpolateValues" -> True}], Lighting -> {{"Ambient", White}}, 
+ 
+Background -> Black, Axes -> True, 
+ AxesLabel -> {Style["z", Bold, 16], Style["y", Bold, 16], 
+   
+Style["x", Bold, 16]}]
+
+abc = MorphologicalComponents[dataCube]; label = {1, 6}; 
+abc2 = 
+ Total[abc*(1 - Unitize[abc - #]) & /@ label]; Image3D@abc2
