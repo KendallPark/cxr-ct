@@ -4,5 +4,5 @@ Website: [3D Reconstruction of Chest X-Rays][1]
 
 ![Some result:-][2]
 
-  [1]: https://sites.google.com/view/cxr2ct/project/
+  [1]: https://sites.google.com/view/cxr2ct/
   [2]: https://lanstonchu.files.wordpress.com/2019/05/patient_540_1_iteration_small.gif?w=614&zoom=2
